@@ -430,8 +430,8 @@
   </div>
 
   <script>
-    // Password gate
-    const GATE_PASSWORD = '2026';
+    // Password gate — password is stored as a SHA-256 hash, not plain text
+    const GATE_HASH = '158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab';
     const GATE_KEY = 'motus-task-sheet-unlocked';
     const gate = document.getElementById('gate');
     const sheet = document.getElementById('sheet');
@@ -440,13 +440,20 @@
     const gateError = document.getElementById('gateError');
     document.getElementById('gateLogo').src = document.querySelector('.logo').src;
 
+    async function sha256(text) {
+      const enc = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     function unlock() {
       gate.classList.add('hidden');
       sheet.classList.remove('hidden');
     }
 
-    function tryUnlock() {
-      if (gateInput.value === GATE_PASSWORD) {
+    async function tryUnlock() {
+      const hash = await sha256(gateInput.value);
+      if (hash === GATE_HASH) {
         try { localStorage.setItem(GATE_KEY, '1'); } catch (e) { /* ignore */ }
         unlock();
       } else {
